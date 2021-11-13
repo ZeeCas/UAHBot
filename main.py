@@ -9,6 +9,7 @@ from discord.ext import commands
 import asyncio
 import urllib.request
 import youtube_dl
+from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -71,13 +72,6 @@ class Bot:
     async def run(self):
         @self.bot.event
         async def on_message(message):
-            # if message.channel.name == 'general-hell':
-            #     print("General Hell")
-            #     if message.author.name == "Yumeko":
-            #         print("Yumeko")
-            #         await message.channel.send(".pick")
-            if not message.content.lower().startswith(self.prefix):
-                return
             channel = message.channel
             guild = message.guild
             _mes = message.content[len(self.prefix):]
@@ -87,11 +81,16 @@ class Bot:
                 if item !="":
                     _mes_list.append(item)
             args = _mes_list
-            command = _mes_list[0].lower()
 
-            del _mes
-            del _mes_list
-
+            if message.content.lower().startswith("im") or message.content.lower().startswith("i'm"):
+                await channel.send(f"Hi {args[1]} i'm dad")
+                print(f"{message.author} : Hi {args[1]} i'm dad")
+            if not message.content.lower().startswith(self.prefix):
+                return
+            else:
+                command = _mes_list[0].lower()
+                del _mes
+                del _mes_list
             try:
                 if command == "say":
                     whole_message = ""
@@ -103,12 +102,16 @@ class Bot:
                     log = open("say-log.txt","a")
                     log.write(f"{self.bot.user.name} said:{whole_message}\n")
                     log.close()  
+                    print(f"{message.author} issued the say command.")
+
                 elif command == "8ball":
                     responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
                     await channel.send(random.choice(responses))
+                    print(f"{message.author} issued the 8ball command.")
                 elif command == "quote":
-                    quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”"]
+                    quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”","\"I literally want to get a French minor\" ~Jacob","\"I am going to get canceled because of this,\" - Dr. Bjorne","\"Comments? Questions? Concerns?\" Criminology Teachers, every class"]
                     await channel.send(random.choice(quotes))
+                    print(f"{message.author} issued the quote command.")
                 elif command =="yt":
                     query = ""
                     for i in args[1:]:
@@ -117,24 +120,53 @@ class Bot:
                     html = urllib.request.urlopen(f"https://www.youtube.com/results?search_query={query}")
                     video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
                     await channel.send(f"https://www.youtube.com/watch?v={video_ids[0]}")
+                    print(f"{message.author} issued the yt command.")
                 elif command == "help":
-                    await channel.send("```The commands are : say, \n8ball, \nquote, \ndog,\ncat, \ncoc, \nyt. yt allows you to search for youtube videos, it chooses the first result.```")
+                    await channel.send("```The commands are : \nsay, \n8ball, \nquote, \npoll, \ndog,cat, fox, whale, duck, bird, \nplay and plyt (play youtube link), \npause, resume, and stop```")
+                    print(f"{message.author} issued the help command.")
                 elif command == "dance":
                     await channel.send("ᕕ(⌐■_■)ᕗ ♪♬")
+                    print(f"{message.author} issued the dance command.")
                 elif command =="dog":
                     api = "https://dog.ceo/api/breeds/image/random"
                     data = requests.get(api)
                     data = data.json()
                     await channel.send(data['message'])
-                    
+                    print(f"{message.author} issued the dog command.")
                 elif command =="cat":
                     api = "https://api.thecatapi.com/v1/images/search"
                     data = requests.get(api)
                     data = data.json()
                     await channel.send(data[0]['url'])
+                    print(f"{message.author} issued the cat command.")
+                elif command == "duck":
+                    api = "https://random-d.uk/api/v2/random"
+                    data = requests.get(api)
+                    data = data.json()
+                    await channel.send(data['url'])
+                    print(f"{message.author} issued the duck command.")
+                elif command == "fox":
+                    api = "https://some-random-api.ml/img/fox"
+                    data = requests.get(api)
+                    data = data.json()
+                    await channel.send(data['link'])
+                    print(f"{message.author} issued the fox command.")
+                elif command == "whale":
+                    api = "https://some-random-api.ml/img/whale"
+                    data = requests.get(api)
+                    data = data.json()
+                    await channel.send(data['link'])
+                    print(f"{message.author} issued the whale command.")
+                elif command == "bird":
+                    api = "https://some-random-api.ml/img/birb"
+                    data = requests.get(api)
+                    data = data.json()
+                    await channel.send(data['link'])
+                    print(f"{message.author} issued the bird command.")
                 elif command == "coc":
                     listoguide = ["https://clashofclans.fandom.com/wiki/Flammy%27s_Strategy_Guides","https://medium.com/mr-ways-guide-to-clash-of-clans/clash-of-clans-the-ultimate-beginners-guide-830f6d7e0a74","https://houseofclashers.com/wiki/en/clash-of-clans-builder-base/strategy-guide/beginners-guide/"]
                     await channel.send(random.choice(listoguide))
+                    print(f"{message.author} issued the coc command.")
                 elif command == "poll":
                     whole_message = ""
                     for i in args[1:]:
@@ -143,25 +175,63 @@ class Bot:
                     await msg.add_reaction("✅")
                     await msg.add_reaction("🚫")
                     await message.delete()
+                    print(f"{message.author} issued the poll command.")
                 elif command == "join":
                     VC = message.author.voice.channel
                     global client
                     client = await VC.connect()
+                    print(f"{message.author} issued the join command.")
                 elif command == "leave":
                     await client.disconnect()
+                    await message.add_reaction("👌")
+                    print(f"{message.author} issued the leave command.")
                 elif command == "play":
-                    list = ["heman.mp3","donda.mp3","everlong.mp3","bleachers.mp3"]
-                    client.play(discord.FFmpegPCMAudio("heman.mp3"), after=lambda e: print('done', e))
+                    lsongs = ["heman.mp3","donda.mp3","everlong.mp3","bleachers.mp3","comin.mp3","apache.mp3","vent.mp3","bag.mp3","woodlawn.mp3","john.mp3","drive.mp3","dogdoor.mp3","hesitation.mp3","drivesafe.mp3"]
+                    song = random.choice(lsongs)
+                    client.play(discord.FFmpegPCMAudio(song), after=lambda e: print('done', e))
+                    await channel.send(f"Now playing {song}")
+                    print(f"{message.author} issued the play command.")
                 elif command == "plyt":
                     filename = await YTDLSource.from_url(args[1], loop=bot.loop)
                     client.play(discord.FFmpegPCMAudio(filename))
+                    print(f"{message.author} issued the plyt command.")
                 elif command == "pause":
                     client.pause()
+                    print(f"{message.author} issued the pause command.")
                 elif command == "resume":
                     client.resume()
+                    print(f"{message.author} issued the resume command.")
+                elif command == "stop":
+                    client.stop()
+                    print(f"{message.author} issued the stop command.")
+                elif command == "hw":
+                    await channel.send(f"Do your homework {args[1]}")
+                    await message.delete()
+                    print(f"{message.author} issued the hw command.")
+                elif command == "bones":
+                    bone = requests.get("https://bones-backend.herokuapp.com/bones")
+                    bone = bone.json()
+                    if bone[0]['value'] == "b":
+                        await channel.send("Its a bones day!!!")
+                        await message.delete()
+                    else:
+                        await channel.send("Its a no bones day!!!")
+                        await message.delete()
+                    print(f"{message.author} issued the bones command.")
+                elif command == "wednesday":
+                    if (datetime.today().weekday() == 2):
+                        await channel.send("Its wednesday my dudes!")
+                        await message.delete()
+                    else:
+                        await channel.send("It is not a wednesday <:sadge:906740836404981790>")
+                        await message.delete()
+                    print(f"{message.author} issued the wednesday command.")
+                elif command == "gas":
+                    print("gas")
                 elif command == "quit":
                     print("Quitting")
                     os._exit(0) 
+                    
 
             except Exception as e:
                 print(e)
