@@ -82,8 +82,8 @@ class Bot:
                     _mes_list.append(item)
             args = _mes_list
 
-            if message.content.lower().startswith("im") or message.content.lower().startswith("i'm"):
-                await channel.send(f"Hi {args[1]} i'm dad")
+            if message.content.lower().startswith("im") or message.content.lower().startswith("i'm") or message.content.lower().startswith("i’m"):
+                await channel.send(f"Hi {' '.join(args[1:])} i'm dad")
                 print(f"{message.author} : Hi {args[1]} i'm dad")
             if not message.content.lower().startswith(self.prefix):
                 return
@@ -109,7 +109,7 @@ class Bot:
                     await channel.send(random.choice(responses))
                     print(f"{message.author} issued the 8ball command.")
                 elif command == "quote":
-                    quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”","\"I literally want to get a French minor\" ~Jacob","\"I am going to get canceled because of this,\" - Dr. Bjorne","\"Comments? Questions? Concerns?\" Criminology Teachers, every class"]
+                    quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”","\"I literally want to get a French minor\" ~Jacob","\"I am going to get canceled because of this,\" - Dr. Bjorne","\"Comments? Questions? Concerns?\" Criminology Teachers, every class","\"When I let my sister do it, I let her use both hands.\" ~Anthony","\“I’m never getting sushi from McDonald’s again,\”","\"Kids don't play Animal Crossing\" My Sister","\"They're not getting more beer into the hands of more people, which in my opinion is not socially optimal\" -Dr. Finck"]
                     await channel.send(random.choice(quotes))
                     print(f"{message.author} issued the quote command.")
                 elif command =="yt":
@@ -188,7 +188,7 @@ class Bot:
                 elif command == "play":
                     lsongs = ["heman.mp3","donda.mp3","everlong.mp3","bleachers.mp3","comin.mp3","apache.mp3","vent.mp3","bag.mp3","woodlawn.mp3","john.mp3","drive.mp3","dogdoor.mp3","hesitation.mp3","drivesafe.mp3"]
                     song = random.choice(lsongs)
-                    client.play(discord.FFmpegPCMAudio(song), after=lambda e: print('done', e))
+                    client.play(discord.FFmpegPCMAudio(f"music/{song}"), after=lambda e: print('done', e))
                     await channel.send(f"Now playing {song}")
                     print(f"{message.author} issued the play command.")
                 elif command == "plyt":
