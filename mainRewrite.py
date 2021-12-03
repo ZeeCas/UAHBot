@@ -62,46 +62,85 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
     @commands.command(pass_context=True)
-    async def join(self,ctx):
+    async def join(self, ctx):
         """Joins the bot to your current channel"""
-        VC = ctx.author.voice.channel
-        client = await VC.connect()
+        if not ctx.message.author.voice:
+            await ctx.send('You must be connected to a voice channel.')
+            return
+        else:
+            VC = ctx.author.voice.channel
+            client = await VC.connect()
+            self.queue = {}
+            await ctx.send(f'Connected to ``{VC}``')
+            
     @commands.command(pass_context=True)
-    async def leave(self,ctx):
+    async def leave(self, ctx):
         """Removes the bot from your current voice channel"""
         await ctx.voice_client.disconnect()
+        
     @commands.command()
-    async def plyt(self,ctx, link: str):
+    async def plyt(self, ctx, link: str):
         """Plays a youtube video by url (predownloads)"""
         async with ctx.typing():
-                    player = await YTDLSource.from_url(link, loop=self.bot.loop)
-                    ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+            player = await YTDLSource.from_url(link, loop=self.bot.loop)
+            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
         await ctx.send('Now playing: {}'.format(player.title))
+        
     @commands.command()
-    async def stream(self,ctx,link: str):
+    async def stream(self, ctx, link: str):
         """Plays a youtube video by url (streams)"""
-        async with ctx.typing():
-                    player = await YTDLSource.from_url(link, loop=self.bot.loop, stream = True)
-                    ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-        await ctx.send('Now playing: {}'.format(player.title))
+        try:
+            async with ctx.typing():
+                player = await YTDLSource.from_url(link, loop=self.bot.loop, stream = True)
+                
+                if len(self.queue) == 0:
+                    self.startPlaying(ctx.voice_client, player)
+                    await ctx.send('Now playing: {}'.format(player.title))
+                    
+                else:
+                    self.queue[len(self.queue)] = player
+                    await ctx.send('Added to queue: {}'.format(player.title))
+                    
+        except:
+            await ctx.send('Something went wrong!')
+                    
+    def startPlaying(self, voice_client, player):
+        
+        self.queue[0] = player
+        
+        i = 0
+        while i < len(self.queue):
+            try:
+                voice_client.play(self.queue[i], after=lambda e: print('Player error: %s' % e) if e else None)
+                
+            except:
+                pass
+            
+            i+=1
+             
     @commands.command()
-    async def volume(self,ctx,volume: int):
+    async def volume(self, ctx, volume: int):
         """Changes the volume"""
         ctx.voice_client.source.volume = volume / 100
         await ctx.send("Changed volume to {}%".format(volume))
+        
     @commands.command()
-    async def pause(self,ctx):
+    async def pause(self, ctx):
         """Pauses the audio coming the bot"""
         await ctx.voice_client.pause()
+        
     @commands.command()
-    async def resume(self,ctx):
+    async def resume(self, ctx):
         """Resumes the paused music"""
         await ctx.voice_client.resume()
+        
     @commands.command()
-    async def stop(self,ctx):
+    async def stop(self, ctx):
         """Removes the music from playing"""
         await ctx.voice_client.stop()
+        
     @commands.command()
     async def yt(ctx, *title: str):
         """Searches for a youtube link by title, returns first result"""
@@ -114,13 +153,14 @@ class Music(commands.Cog):
 class Images(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        
     @commands.command()
-    async def cat(self,ctx):
+    async def cat(self, ctx):
         """Returns an image of a O'Malley"""
         await ctx.send(file=discord.File(f"photos/{random.randrange(1,10)}.jpg"))
 
     @commands.command()
-    async def duck(self,ctx):
+    async def duck(self, ctx):
         """Returns an image of a duck"""
         api = "https://random-d.uk/api/v2/random"
         data = requests.get(api)
@@ -128,7 +168,7 @@ class Images(commands.Cog):
         await ctx.send(data['url'])
 
     @commands.command()
-    async def fox(self,ctx):
+    async def fox(self, ctx):
         """Returns an image of a fox"""
         api = "https://some-random-api.ml/img/fox"
         data = requests.get(api)
@@ -136,7 +176,7 @@ class Images(commands.Cog):
         await ctx.send(data['link'])
 
     @commands.command()
-    async def whale(self,ctx):
+    async def whale(self, ctx):
         """Returns an image of a whale"""
         api = "https://some-random-api.ml/img/whale"
         data = requests.get(api)
@@ -144,7 +184,7 @@ class Images(commands.Cog):
         await ctx.send(data['link'])
 
     @commands.command()
-    async def bird(self,ctx):
+    async def bird(self, ctx):
         """Returns an image of a bird"""
         api = "https://some-random-api.ml/img/birb"
         data = requests.get(api)
@@ -156,37 +196,37 @@ class Fun(commands.Cog):
         self.bot = bot
 
     @commands.command(name='8ball')
-    async def _8ball(self,ctx):
+    async def _8ball(self, ctx):
         """Rolls an 8ball for you"""
         responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
         await ctx.send(random.choice(responses))
 
     @commands.command()
-    async def quote(self,ctx):
+    async def quote(self, ctx):
         """Returns a quote from the list of quotes"""
         with open("./quotes","r") as quotes:
             lines = quotes.read().splitlines()
             await ctx.send(random.choice(lines))
 
     @commands.command()
-    async def dance(self,ctx):
+    async def dance(self, ctx):
         """The bot does a little dance"""
         await ctx.send("ᕕ(⌐■_■)ᕗ ♪♬")
 
     @commands.command()
-    async def coc(self,ctx):
+    async def coc(self, ctx):
         """Returns a random clash of clans guide"""
         listoguide = ["https://clashofclans.fandom.com/wiki/Flammy%27s_Strategy_Guides","https://medium.com/mr-ways-guide-to-clash-of-clans/clash-of-clans-the-ultimate-beginners-guide-830f6d7e0a74","https://houseofclashers.com/wiki/en/clash-of-clans-builder-base/strategy-guide/beginners-guide/"]
         await ctx.send(random.choice(listoguide))
 
     @commands.command()
-    async def hw(self,ctx,target: str):
+    async def hw(self, ctx, target: str):
         """Tells someone to do their homework"""
         await ctx.send(f"Do your homework {target}!")
         await ctx.message.delete()
 
     @commands.command()
-    async def wednesday(self,ctx):
+    async def wednesday(self, ctx):
         """Checks whether it is wednesday or not"""
         if (datetime.today().weekday() == 2):
             await ctx.send("It's wednesday my dudes")
@@ -200,13 +240,13 @@ class Utility(commands.Cog):
         self.bot = bot
     
     @commands.command()
-    async def say(self,ctx, *message: str):
+    async def say(self, ctx, *message: str):
         """Parrots back what you say"""
         await ctx.send(" ".join(message))
         await ctx.message.delete()
 
     @commands.command()
-    async def poll(self,ctx, *message: str):
+    async def poll(self, ctx, *message: str):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
