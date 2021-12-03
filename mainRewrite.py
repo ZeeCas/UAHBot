@@ -9,6 +9,8 @@ import asyncio
 from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
+import json
+
 
 intents = discord.Intents.all()
 
@@ -94,19 +96,23 @@ class Music(commands.Cog):
         try:
             if "http" in link or "www." in link:
                 async with ctx.typing():
-                    with youtube_dl.YoutubeDL(ytdl_format_options) as ydl:
-                        song_info = ydl.extract_info(link, download=False)
-                    ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
+                    song_info = ytdl.extract_info(link, download=False)
+                    with open("song_info.log","w") as log:
+                        log.write(str(song_info))
+                    #ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
 
-                    # player = await YTDLSource.from_url(link, loop=self.bot.loop, stream = True)
+                    player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
+                    title = song_info["title"]
+                    #print(song_info["formats"][0]["url"])
+
                     
-                    # if len(self.queue) == 0:
-                    #     self.startPlaying(ctx.voice_client, player)
-                    #     await ctx.send('Now playing: {}'.format(player.title))
+                    if len(self.queue) == 0:
+                        self.startPlaying(ctx.voice_client, player)
+                        await ctx.send('Now playing: {}'.format(title))
                         
-                    # else:
-                    #     self.queue[len(self.queue)] = player
-                    #     await ctx.send('Added to queue: {}'.format(player.title))
+                    else:
+                        self.queue[len(self.queue)] = player
+                        await ctx.send('Added to queue: {}'.format(title))
             else: 
                 link = str(link).replace(" ","+")
                 html = requests.get(f"https://www.youtube.com/results?search_query={title}")
@@ -268,6 +274,8 @@ class Utility(commands.Cog):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
+    # def reportAuthor(ctx)
+
 
 
 bot.add_cog(Music(bot))
