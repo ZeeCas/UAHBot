@@ -94,34 +94,24 @@ class Music(commands.Cog):
     async def stream(self, ctx, link: str):
         """Plays a youtube video by url (streams)"""
         try:
-            if "http" in link or "www." in link:
-                async with ctx.typing():
-                    song_info = ytdl.extract_info(link, download=False)
-                    #ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
-                    player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
-                    title = song_info["title"]
+            if "http" not in link and "www." not in link:
+                link = Utility.getYTURL(link)
 
-                    if len(self.queue) == 0:
-                        self.startPlaying(ctx.voice_client, player)
-                        await ctx.send('Now playing: {}'.format(title))
-                        
-                    else:
-                        self.queue[len(self.queue)] = player
-                        await ctx.send('Added to queue: {}'.format(title))
-            else: 
-                link = str(link).replace(" ","+")
-                html = requests.get(f"https://www.youtube.com/results?search_query={title}")
-                video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
-                async with ctx.typing():
-                    player = await YTDLSource.from_url(video_ids[0], loop=self.bot.loop, stream = True)
+            async with ctx.typing():
+                #player = await YTDLSource.from_url(video_ids[0], loop=self.bot.loop, stream = True)
+                song_info = ytdl.extract_info(link, download=False)
+                #ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
+                player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
+                title = song_info["title"]
                 
-                    if len(self.queue) == 0:
-                        self.startPlaying(ctx.voice_client, player)
-                        await ctx.send('Now playing: {}'.format(player.title))
+                if len(self.queue) == 0:
+                    self.startPlaying(ctx.voice_client, player)
+                    await ctx.send('Now playing: {}'.format(player.title))
                         
-                    else:
-                        self.queue[len(self.queue)] = player
-                        await ctx.send('Added to queue: {}'.format(player.title))
+                else:
+                    self.queue[len(self.queue)] = player
+                    await ctx.send('Added to queue: {}'.format(player.title))
+                    
         except Exception as e:
             print(e)
             await ctx.send(e)
@@ -269,6 +259,13 @@ class Utility(commands.Cog):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
+        
+    def getYTURL(self, link):
+        link = str(link).replace(" ","+")
+        html = requests.get(f"https://www.youtube.com/results?search_query={title}")
+        video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
+        return video_ids[0]
+        
     #def reportAuthor(ctx)
 
 
