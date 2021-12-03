@@ -1,3 +1,4 @@
+import os
 import discord
 from discord.ext import commands
 import re
@@ -156,30 +157,36 @@ class Fun(commands.Cog):
 
     @commands.command(name='8ball')
     async def _8ball(self,ctx):
+        """Rolls an 8ball for you"""
         responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
         await ctx.send(random.choice(responses))
 
     @commands.command()
     async def quote(self,ctx):
+        """Returns a quote from the list of quotes"""
         quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”","\"I literally want to get a French minor\" ~Jacob","\"I am going to get canceled because of this,\" - Dr. Bjorne","\"Comments? Questions? Concerns?\" Criminology Teachers, every class","\"When I let my sister do it, I let her use both hands.\" ~Anthony","\“I’m never getting sushi from McDonald’s again,\”","\"Kids don't play Animal Crossing\" My Sister","\"They're not getting more beer into the hands of more people, which in my opinion is not socially optimal\" -Dr. Finck"]
         await ctx.send(random.choice(quotes))
 
     @commands.command()
     async def dance(self,ctx):
+        """The bot does a little dance"""
         await ctx.send("ᕕ(⌐■_■)ᕗ ♪♬")
 
     @commands.command()
     async def coc(self,ctx):
+        """Returns a random clash of clans guide"""
         listoguide = ["https://clashofclans.fandom.com/wiki/Flammy%27s_Strategy_Guides","https://medium.com/mr-ways-guide-to-clash-of-clans/clash-of-clans-the-ultimate-beginners-guide-830f6d7e0a74","https://houseofclashers.com/wiki/en/clash-of-clans-builder-base/strategy-guide/beginners-guide/"]
         await ctx.send(random.choice(listoguide))
 
     @commands.command()
     async def hw(self,ctx,target: str):
+        """Tells someone to do their homework"""
         await ctx.send(f"Do your homework {target}!")
         await ctx.message.delete()
 
     @commands.command()
     async def wednesday(self,ctx):
+        """Checks whether it is wednesday or not"""
         if (datetime.today().weekday() == 2):
             await ctx.send("It's wednesday my dudes")
             await ctx.message.delete()
@@ -190,12 +197,16 @@ class Fun(commands.Cog):
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+    
     @commands.command()
     async def say(self,ctx, *message: str):
+        """Parrots back what you say"""
         await ctx.send(" ".join(message))
+        await ctx.message.delete()
 
     @commands.command()
     async def poll(self,ctx, *message: str):
+        """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
 
