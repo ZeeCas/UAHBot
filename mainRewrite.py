@@ -76,11 +76,13 @@ class Music(commands.Cog):
             client = await VC.connect()
 
             await ctx.send(f'Connected to ``{VC}``')
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
             
     @commands.command(pass_context=True)
     async def leave(self, ctx):
         """Removes the bot from your current voice channel"""
         await ctx.voice_client.disconnect()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def plyt(self, ctx, link: str):
@@ -89,6 +91,7 @@ class Music(commands.Cog):
             player = await YTDLSource.from_url(link, loop=self.bot.loop)
             ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
         await ctx.send('Now playing: {}'.format(player.title))
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def stream(self, ctx, link: str):
@@ -122,6 +125,7 @@ class Music(commands.Cog):
                     else:
                         self.queue[len(self.queue)] = player
                         await ctx.send('Added to queue: {}'.format(player.title))
+            Utility.reportAuthor(ctx,ctx.command,ctx.author)
         except Exception as e:
             print(e)
             await ctx.send(e)
@@ -139,27 +143,32 @@ class Music(commands.Cog):
                 pass
             
             i+=1
+        
              
     @commands.command()
     async def volume(self, ctx, volume: int):
         """Changes the volume"""
         ctx.voice_client.source.volume = volume / 100
         await ctx.send("Changed volume to {}%".format(volume))
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def pause(self, ctx):
         """Pauses the audio coming the bot"""
         await ctx.voice_client.pause()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def resume(self, ctx):
         """Resumes the paused music"""
         await ctx.voice_client.resume()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def stop(self, ctx):
         """Removes the music from playing"""
         await ctx.voice_client.stop()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
     @commands.command()
     async def yt(self, ctx, *title: str):
@@ -168,6 +177,7 @@ class Music(commands.Cog):
         html = requests.get(f"https://www.youtube.com/results?search_query={title}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         await ctx.send(f"https://www.youtube.com/watch?v={video_ids[0]}")
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
 class Images(commands.Cog):
     def __init__(self, bot):
@@ -177,6 +187,15 @@ class Images(commands.Cog):
     async def cat(self, ctx):
         """Returns an image of a O'Malley"""
         await ctx.send(file=discord.File(f"photos/{random.randrange(1,10)}.jpg"))
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+
+    @commands.command()
+    async def dog(self,ctx):
+        api = "https://dog.ceo/api/breeds/image/random"
+        data = requests.get(api)
+        data = data.json()
+        await ctx.send(data['message'])
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
     async def duck(self, ctx):
@@ -185,6 +204,7 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['url'])
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
     async def fox(self, ctx):
@@ -193,6 +213,7 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
     async def whale(self, ctx):
@@ -201,6 +222,7 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
     async def bird(self, ctx):
@@ -209,6 +231,7 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
 class Fun(commands.Cog):
     def __init__(self, bot):
@@ -218,6 +241,7 @@ class Fun(commands.Cog):
     async def _8ball(self, ctx):
         """Rolls an 8ball for you"""
         responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         await ctx.send(random.choice(responses))
 
     @commands.command()
@@ -225,23 +249,27 @@ class Fun(commands.Cog):
         """Returns a quote from the list of quotes"""
         with open("./quotes","r") as quotes:
             lines = quotes.read().splitlines()
+            Utility.reportAuthor(ctx,ctx.command,ctx.author)
             await ctx.send(random.choice(lines))
 
     @commands.command()
     async def dance(self, ctx):
         """The bot does a little dance"""
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         await ctx.send("ᕕ(⌐■_■)ᕗ ♪♬")
 
     @commands.command()
     async def coc(self, ctx):
         """Returns a random clash of clans guide"""
         listoguide = ["https://clashofclans.fandom.com/wiki/Flammy%27s_Strategy_Guides","https://medium.com/mr-ways-guide-to-clash-of-clans/clash-of-clans-the-ultimate-beginners-guide-830f6d7e0a74","https://houseofclashers.com/wiki/en/clash-of-clans-builder-base/strategy-guide/beginners-guide/"]
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         await ctx.send(random.choice(listoguide))
 
     @commands.command()
     async def hw(self, ctx, target: str):
         """Tells someone to do their homework"""
         await ctx.send(f"Do your homework {target}!")
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
         await ctx.message.delete()
 
     @commands.command()
@@ -253,6 +281,7 @@ class Fun(commands.Cog):
         else:
             await ctx.send("It is not a wednesday <:sadge:906740836404981790>")
             await ctx.message.delete()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
 class Utility(commands.Cog):
     def __init__(self, bot):
@@ -263,19 +292,24 @@ class Utility(commands.Cog):
         """Parrots back what you say"""
         await ctx.send(" ".join(message))
         await ctx.message.delete()
+        print(ctx.author)
+        self.reportAuthor(ctx.command,ctx.author)
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
     async def poll(self, ctx, *message: str):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
-    #def reportAuthor(ctx)
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+
+    def reportAuthor(self, command: str, author: str):
+        print(f"{author} issued the {command} command.")
 
 
-
+bot.add_cog(Utility(bot))
 bot.add_cog(Music(bot))
 bot.add_cog(Images(bot))
 bot.add_cog(Fun(bot))
-bot.add_cog(Utility(bot))
 print("Looks like we're online :)")
 bot.run(os.getenv('DISCORD-TOKEN'))
