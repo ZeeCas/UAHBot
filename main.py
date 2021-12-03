@@ -38,6 +38,7 @@ ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
+        
         self.data = data
         self.title = data.get('title')
         self.url = ""
@@ -81,10 +82,10 @@ class Bot:
                 if item !="":
                     _mes_list.append(item)
             args = _mes_list
-
-            if message.content.lower().startswith("im") or message.content.lower().startswith("i'm") or message.content.lower().startswith("i’m"):
-                await channel.send(f"Hi {' '.join(args[1:])} i'm dad")
-                print(f"{message.author} : Hi {args[1]} i'm dad")
+            match message.content.lower()[0:3]:
+                case "im " | "i'm" | "i’m":
+                    await channel.send(f"Hi {' '.join(args[1:])} i'm dad")
+                    print(f"{message.author} : Hi {args[1]} i'm dad")
             if not message.content.lower().startswith(self.prefix):
                 return
             else:
