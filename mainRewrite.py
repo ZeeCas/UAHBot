@@ -62,7 +62,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        
+        self.queue = {}
     @commands.command(pass_context=True)
     async def join(self, ctx):
         """Joins the bot to your current channel"""
@@ -72,7 +72,7 @@ class Music(commands.Cog):
         else:
             VC = ctx.author.voice.channel
             client = await VC.connect()
-            self.queue = {}
+
             await ctx.send(f'Connected to ``{VC}``')
             
     @commands.command(pass_context=True)
@@ -92,19 +92,38 @@ class Music(commands.Cog):
     async def stream(self, ctx, link: str):
         """Plays a youtube video by url (streams)"""
         try:
-            async with ctx.typing():
-                player = await YTDLSource.from_url(link, loop=self.bot.loop, stream = True)
+            if "http" in link or "www." in link:
+                async with ctx.typing():
+                    with youtube_dl.YoutubeDL(ytdl_format_options) as ydl:
+                        song_info = ydl.extract_info(link, download=False)
+                    ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
+
+                    # player = await YTDLSource.from_url(link, loop=self.bot.loop, stream = True)
+                    
+                    # if len(self.queue) == 0:
+                    #     self.startPlaying(ctx.voice_client, player)
+                    #     await ctx.send('Now playing: {}'.format(player.title))
+                        
+                    # else:
+                    #     self.queue[len(self.queue)] = player
+                    #     await ctx.send('Added to queue: {}'.format(player.title))
+            else: 
+                link = str(link).replace(" ","+")
+                html = requests.get(f"https://www.youtube.com/results?search_query={title}")
+                video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
+                async with ctx.typing():
+                    player = await YTDLSource.from_url(video_ids[0], loop=self.bot.loop, stream = True)
                 
-                if len(self.queue) == 0:
-                    self.startPlaying(ctx.voice_client, player)
-                    await ctx.send('Now playing: {}'.format(player.title))
-                    
-                else:
-                    self.queue[len(self.queue)] = player
-                    await ctx.send('Added to queue: {}'.format(player.title))
-                    
-        except:
-            await ctx.send('Something went wrong!')
+                    if len(self.queue) == 0:
+                        self.startPlaying(ctx.voice_client, player)
+                        await ctx.send('Now playing: {}'.format(player.title))
+                        
+                    else:
+                        self.queue[len(self.queue)] = player
+                        await ctx.send('Added to queue: {}'.format(player.title))
+        except Exception as e:
+            print(e)
+            await ctx.send(e)
                     
     def startPlaying(self, voice_client, player):
         
@@ -142,12 +161,11 @@ class Music(commands.Cog):
         await ctx.voice_client.stop()
         
     @commands.command()
-    async def yt(ctx, *title: str):
+    async def yt(self, ctx, *title: str):
         """Searches for a youtube link by title, returns first result"""
-        title = " ".join(title)
-        title = title.replace(" ","+")
-        html = requests.get(f"https://www.youtube.com/results?search_query={query}")
-        video_ids = re.findall(r"watch\?v=(\S{11})", html.read().decode())
+        title = str(title).replace(" ","+")
+        html = requests.get(f"https://www.youtube.com/results?search_query={title}")
+        video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         await ctx.send(f"https://www.youtube.com/watch?v={video_ids[0]}")
 
 class Images(commands.Cog):
