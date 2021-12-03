@@ -97,15 +97,10 @@ class Music(commands.Cog):
             if "http" in link or "www." in link:
                 async with ctx.typing():
                     song_info = ytdl.extract_info(link, download=False)
-                    with open("song_info.log","w") as log:
-                        log.write(str(song_info))
                     #ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
-
                     player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
                     title = song_info["title"]
-                    #print(song_info["formats"][0]["url"])
 
-                    
                     if len(self.queue) == 0:
                         self.startPlaying(ctx.voice_client, player)
                         await ctx.send('Now playing: {}'.format(title))
@@ -274,7 +269,7 @@ class Utility(commands.Cog):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
-    # def reportAuthor(ctx)
+    #def reportAuthor(ctx)
 
 
 
