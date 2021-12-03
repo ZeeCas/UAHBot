@@ -28,7 +28,7 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0' # bind to ipv4 since ipv6 addresses cause issues sometimes
+    'source_address': '0.0.0.0' 
 }
 
 ffmpeg_options = {
@@ -164,8 +164,9 @@ class Fun(commands.Cog):
     @commands.command()
     async def quote(self,ctx):
         """Returns a quote from the list of quotes"""
-        quotes = ["\"Do not throw babies\" - Dr.Hannah","\"To know your enemy, you must become your enemy.\" - Some Chinese guy","\“Don’t marry a farrier,\” - Dr. Berry","\“If Kamala Harris becomes president, that will make her the hottest president in history— because I’m not gay\”","\"I want to be a bee ... I want to be a praying mantis, that's how I wanna go\" -- Nolan","\“I want somebody to punish me\” ~Luke","\"I think we should kill them (ewoks) long and painfully\" Dr.Baudry","\"it just needs more quotes to properly work i think\" - Cas","\"Muck!\" \"Muck?\"","\"Coyote of the sandwhich\" -Hayley","\“Don’t you dare steal my turkey thug hat!\”","\"I literally want to get a French minor\" ~Jacob","\"I am going to get canceled because of this,\" - Dr. Bjorne","\"Comments? Questions? Concerns?\" Criminology Teachers, every class","\"When I let my sister do it, I let her use both hands.\" ~Anthony","\“I’m never getting sushi from McDonald’s again,\”","\"Kids don't play Animal Crossing\" My Sister","\"They're not getting more beer into the hands of more people, which in my opinion is not socially optimal\" -Dr. Finck"]
-        await ctx.send(random.choice(quotes))
+        with open("./quotes","r") as quotes:
+            lines = quotes.read().splitlines()
+            await ctx.send(random.choice(lines))
 
     @commands.command()
     async def dance(self,ctx):
