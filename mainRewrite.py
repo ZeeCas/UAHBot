@@ -74,7 +74,7 @@ class Music(commands.Cog):
         else:
             VC = ctx.author.voice.channel
             client = await VC.connect()
-
+            self.queue = {}
             await ctx.send(f'Connected to ``{VC}``')
         Utility.reportAuthor(ctx,ctx.command,ctx.author)
             
@@ -93,52 +93,49 @@ class Music(commands.Cog):
         await ctx.send('Now playing: {}'.format(player.title))
         Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
-    @commands.command()
-    async def stream(self, ctx, link: str):
+    @commands.command(name="stream")
+    async def queue(self, ctx, link: str):
         """Plays a youtube video by url (streams)"""
         try:
-            if "http" not in link and "www." not in link:
-                link = Utility.getYTURL(link)
+            # if not "http" in link and not "www." in link:
+            #     print(link)
+            #     link = str(link).replace(" ","+")
+            #     link = Utility.getYTURL(link)
 
             async with ctx.typing():
-                #player = await YTDLSource.from_url(video_ids[0], loop=self.bot.loop, stream = True)
                 song_info = ytdl.extract_info(link, download=False)
-                #ctx.voice_client.play(discord.FFmpegPCMAudio(song_info["formats"][0]["url"]))
                 player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
                 title = song_info["title"]
-                
-                if len(self.queue) == 0:
-                    self.startPlaying(ctx.voice_client, player)
-                    await ctx.send('Now playing: {}'.format(player.title))
-                        
-<<<<<<< HEAD
-                    else:
-                        self.queue[len(self.queue)] = player
-                        await ctx.send('Added to queue: {}'.format(player.title))
-            Utility.reportAuthor(ctx,ctx.command,ctx.author)
-=======
-                else:
-                    self.queue[len(self.queue)] = player
-                    await ctx.send('Added to queue: {}'.format(player.title))
-                    
->>>>>>> a3c933f63bba77b9b6ed7926a870b4f499dd5074
+                try:
+                    async with ctx.typing():
+                        if len(self.queue) == 0:
+                            self.start_playing(ctx.voice_client, player)
+                            await ctx.send(f"**Now Playing:** ``{title}``")
+                        else:
+                            
+                            self.queue[len(self.queue)] = player
+                            await ctx.send(f"**Added to queue:** ``{title}``")
+                except Exception as e:
+                    print(e)
+                    await ctx.send(e)
         except Exception as e:
             print(e)
-            await ctx.send(e)
+            await ctx.send(e)             
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+
                     
-    def startPlaying(self, voice_client, player):
-        
+    def start_playing(self, voice_client, player):
         self.queue[0] = player
-        
+
         i = 0
-        while i < len(self.queue):
+        while i <  len(self.queue):
             try:
                 voice_client.play(self.queue[i], after=lambda e: print('Player error: %s' % e) if e else None)
-                
-            except:
-                pass
-            
-            i+=1
+
+            except Exception as e:
+                print(e)
+            i += 1
+        
         
              
     @commands.command()
@@ -297,23 +294,16 @@ class Utility(commands.Cog):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
-<<<<<<< HEAD
         Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     def reportAuthor(self, command: str, author: str):
         print(f"{author} issued the {command} command.")
-=======
         
     def getYTURL(self, link):
         link = str(link).replace(" ","+")
-        html = requests.get(f"https://www.youtube.com/results?search_query={title}")
+        html = requests.get(f"https://www.youtube.com/results?search_query={link}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         return video_ids[0]
-        
-    #def reportAuthor(ctx)
-
->>>>>>> a3c933f63bba77b9b6ed7926a870b4f499dd5074
-
 
 bot.add_cog(Utility(bot))
 bot.add_cog(Music(bot))
