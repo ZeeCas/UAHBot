@@ -61,6 +61,16 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
+class Listeners(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+    @bot.event
+    async def on_message(message):
+        if message.content.lower().startswith("im "):
+            await message.channel.send(f"Hi {message.content[3:]} i'm Dad")
+        elif message.content.lower().startswith("i'm ") or message.content.lower().startswith("i’m "):
+            await message.channel.send(f"Hi{message.content[3:]} i'm Dad")
+
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -309,5 +319,8 @@ bot.add_cog(Utility(bot))
 bot.add_cog(Music(bot))
 bot.add_cog(Images(bot))
 bot.add_cog(Fun(bot))
-print("Looks like we're online :)")
+bot.add_cog(Listeners(bot))
+@bot.event
+async def on_ready():
+    print("Looks like we're online :)")
 bot.run(os.getenv('DISCORD-TOKEN'))
