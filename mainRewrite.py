@@ -108,7 +108,7 @@ class Music(commands.Cog):
         """Plays a youtube video by url (streams)"""
         try:
             if not "http" in link and not "www." in link:
-                link = Utility.getYTURL(link)
+                link = Utility.getYTURL(self,lnk=link)
             async with ctx.typing():
                 song_info = ytdl.extract_info(link, download=False)
                 player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
