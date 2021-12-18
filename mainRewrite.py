@@ -10,6 +10,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 load_dotenv()
 import json
+# import pysftp
 
 
 intents = discord.Intents.all()
@@ -61,6 +62,14 @@ class YTDLSource(discord.PCMVolumeTransformer):
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
+# class FTP(commands.Cog):
+#     def __init__(self,bot):
+#         self.bot = bot
+#     def parseFTP(self, ctx, file: str):
+#         with pysftp.Connection('127.0.0.1', port=39870, username='pythonboi', password='Mijo2003', cnopts=cnopts) as sftp:
+#             with sftp.cd('.'):
+#                 files = ",".split(sftp.listdir())
+
 class Listeners(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -70,7 +79,7 @@ class Listeners(commands.Cog):
             await message.channel.send(f"Hi {message.content[3:]} i'm Dad")
         elif message.content.lower().startswith("i'm ") or message.content.lower().startswith("i’m "):
             await message.channel.send(f"Hi{message.content[3:]} i'm Dad")
-
+        await bot.process_commands(message)
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -94,24 +103,12 @@ class Music(commands.Cog):
         await ctx.voice_client.disconnect()
         Utility.reportAuthor(ctx,ctx.command,ctx.author)
         
-    @commands.command()
-    async def plyt(self, ctx, link: str):
-        """Plays a youtube video by url (predownloads)"""
-        async with ctx.typing():
-            player = await YTDLSource.from_url(link, loop=self.bot.loop)
-            ctx.voice_client.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
-        await ctx.send('Now playing: {}'.format(player.title))
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
-        
     @commands.command(name="stream")
-    async def queue(self, ctx, link: str):
+    async def queue(self, ctx, *link):
         """Plays a youtube video by url (streams)"""
         try:
-            # if not "http" in link and not "www." in link:
-            #     print(link)
-            #     link = str(link).replace(" ","+")
-            #     link = Utility.getYTURL(link)
-
+            if not "http" in link and not "www." in link:
+                link = Utility.getYTURL(link)
             async with ctx.typing():
                 song_info = ytdl.extract_info(link, download=False)
                 player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
@@ -126,8 +123,8 @@ class Music(commands.Cog):
                             self.queue[len(self.queue)] = player
                             await ctx.send(f"**Added to queue:** ``{title}``")
                 except Exception as e:
-                    print(e)
                     await ctx.send(e)
+                    print(e)
         except Exception as e:
             print(e)
             await ctx.send(e)             
@@ -285,6 +282,13 @@ class Fun(commands.Cog):
             await ctx.send("It is not a wednesday <:sadge:906740836404981790>")
             await ctx.message.delete()
         Utility.reportAuthor(ctx,ctx.command,ctx.author)
+    
+    @commands.command()
+    async def cope(self,ctx):
+        """Cope"""
+        await ctx.send("https://tenor.com/view/cope-dont-care-crying-cry-chips-gif-21606846")
+        await ctx.message.delete()
+        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
 class Utility(commands.Cog):
     def __init__(self, bot):
@@ -309,18 +313,20 @@ class Utility(commands.Cog):
     def reportAuthor(self, command: str, author: str):
         print(f"{author} issued the {command} command.")
         
-    def getYTURL(self, link):
-        link = str(link).replace(" ","+")
-        html = requests.get(f"https://www.youtube.com/results?search_query={link}")
+    def getYTURL(self, lnk):
+        print(type(lnk))
+        lnk = "+".join(lnk)
+        q = f"https://www.youtube.com/results?search_query={lnk}"
+        print(q)
+        html = requests.get(f"https://www.youtube.com/results?search_query={lnk}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         return video_ids[0]
 
-bot.add_cog(Utility(bot))
+      
+bot.add_cog(Listeners(bot))
 bot.add_cog(Music(bot))
+bot.add_cog(Utility(bot))
 bot.add_cog(Images(bot))
 bot.add_cog(Fun(bot))
-bot.add_cog(Listeners(bot))
-@bot.event
-async def on_ready():
-    print("Looks like we're online :)")
+print("E")
 bot.run(os.getenv('DISCORD-TOKEN'))
