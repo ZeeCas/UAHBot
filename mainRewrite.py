@@ -1,3 +1,5 @@
+#TODO ping command, pings every 30 seconds
+
 import os
 import discord
 from discord.ext import commands
@@ -11,7 +13,6 @@ from dotenv import load_dotenv
 load_dotenv()
 import json
 # import pysftp
-
 
 intents = discord.Intents.all()
 
@@ -73,6 +74,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
 class Listeners(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.Utility = Utility(self.bot)
+
     @bot.event
     async def on_message(message):
         if message.content.lower().startswith("im "):
@@ -80,10 +83,15 @@ class Listeners(commands.Cog):
         elif message.content.lower().startswith("i'm ") or message.content.lower().startswith("i’m "):
             await message.channel.send(f"Hi{message.content[3:]} i'm Dad")
         await bot.process_commands(message)
+
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.Utility = Utility(self.bot)
         self.queue = {}
+        self.link = ""
+
+
     @commands.command(pass_context=True)
     async def join(self, ctx):
         """Joins the bot to your current channel"""
@@ -95,81 +103,64 @@ class Music(commands.Cog):
             client = await VC.connect()
             self.queue = {}
             await ctx.send(f'Connected to ``{VC}``')
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
             
     @commands.command(pass_context=True)
     async def leave(self, ctx):
         """Removes the bot from your current voice channel"""
         await ctx.voice_client.disconnect()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         
     @commands.command(name="stream")
     async def queue(self, ctx, *link):
         """Plays a youtube video by url (streams)"""
         try:
             if not "http" in link and not "www." in link:
-                link = Utility.getYTURL(self,lnk=link)
+                link = self.Utility.getYTURL(link)
             async with ctx.typing():
                 song_info = ytdl.extract_info(link, download=False)
                 player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
-                title = song_info["title"]
+                self.title = song_info["title"]
                 try:
                     async with ctx.typing():
-                        if len(self.queue) == 0:
                             self.start_playing(ctx.voice_client, player)
-                            await ctx.send(f"**Now Playing:** ``{title}``")
-                        else:
-                            
-                            self.queue[len(self.queue)] = player
-                            await ctx.send(f"**Added to queue:** ``{title}``")
+                            await ctx.send(f"**Now Playing:** ``{self.title}``")
                 except Exception as e:
-                    await ctx.send(e)
                     print(e)
         except Exception as e:
             print(e)
             await ctx.send(e)             
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
-
-                    
-    def start_playing(self, voice_client, player):
-        self.queue[0] = player
-
-        i = 0
-        while i <  len(self.queue):
-            try:
-                voice_client.play(self.queue[i], after=lambda e: print('Player error: %s' % e) if e else None)
-
-            except Exception as e:
-                print(e)
-            i += 1
-        
-        
-             
+        self.Utility.reportAuthor(ctx.command,ctx.author)
+       
     @commands.command()
     async def volume(self, ctx, volume: int):
         """Changes the volume"""
         ctx.voice_client.source.volume = volume / 100
         await ctx.send("Changed volume to {}%".format(volume))
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         
     @commands.command()
     async def pause(self, ctx):
         """Pauses the audio coming the bot"""
         await ctx.voice_client.pause()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         
     @commands.command()
     async def resume(self, ctx):
         """Resumes the paused music"""
         await ctx.voice_client.resume()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         
     @commands.command()
     async def stop(self, ctx):
         """Removes the music from playing"""
         await ctx.voice_client.stop()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         
+    @commands.command(name="np")
+    async def nowPlaying(self,ctx):
+        await ctx.send(f"**Now Playing:** ``{self.title}``")
+
     @commands.command()
     async def yt(self, ctx, *title: str):
         """Searches for a youtube link by title, returns first result"""
@@ -177,17 +168,21 @@ class Music(commands.Cog):
         html = requests.get(f"https://www.youtube.com/results?search_query={title}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         await ctx.send(f"https://www.youtube.com/watch?v={video_ids[0]}")
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
+    
+    def start_playing(self, voice_client, player):
+        voice_client.play(player, after=lambda e: print('Done') if not e else None)
 
 class Images(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        
+        self.Utility = Utility(self.bot)
     @commands.command()
     async def cat(self, ctx):
         """Returns an image of a O'Malley"""
         await ctx.send(file=discord.File(f"photos/{random.randrange(1,10)}.jpg"))
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def dog(self,ctx):
@@ -195,7 +190,8 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['message'])
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def duck(self, ctx):
@@ -204,7 +200,8 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['url'])
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def fox(self, ctx):
@@ -213,7 +210,8 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def whale(self, ctx):
@@ -222,7 +220,8 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def bird(self, ctx):
@@ -231,17 +230,27 @@ class Images(commands.Cog):
         data = requests.get(api)
         data = data.json()
         await ctx.send(data['link'])
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.Utility = Utility(self.bot)
+
+    @commands.command()
+    async def xkcd(self,ctx):
+        """Returns a random xkcd comic image"""
+        request = requests.get("https://random-xkcd-img.herokuapp.com/")
+        await ctx.send(request.json()['url'])
+        await ctx.message.delete()
+
 
     @commands.command(name='8ball')
     async def _8ball(self, ctx):
         """Rolls an 8ball for you"""
         responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         await ctx.send(random.choice(responses))
 
     @commands.command()
@@ -249,27 +258,30 @@ class Fun(commands.Cog):
         """Returns a quote from the list of quotes"""
         with open("./quotes","r") as quotes:
             lines = quotes.read().splitlines()
-            Utility.reportAuthor(ctx,ctx.command,ctx.author)
+            self.Utility.reportAuthor(ctx.command,ctx.author)
             await ctx.send(random.choice(lines))
+        await ctx.message.delete()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def dance(self, ctx):
         """The bot does a little dance"""
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         await ctx.send("ᕕ(⌐■_■)ᕗ ♪♬")
+        await ctx.message.delete()
 
     @commands.command()
     async def coc(self, ctx):
         """Returns a random clash of clans guide"""
         listoguide = ["https://clashofclans.fandom.com/wiki/Flammy%27s_Strategy_Guides","https://medium.com/mr-ways-guide-to-clash-of-clans/clash-of-clans-the-ultimate-beginners-guide-830f6d7e0a74","https://houseofclashers.com/wiki/en/clash-of-clans-builder-base/strategy-guide/beginners-guide/"]
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         await ctx.send(random.choice(listoguide))
 
     @commands.command()
     async def hw(self, ctx, target: str):
         """Tells someone to do their homework"""
         await ctx.send(f"Do your homework {target}!")
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
         await ctx.message.delete()
 
     @commands.command()
@@ -281,14 +293,14 @@ class Fun(commands.Cog):
         else:
             await ctx.send("It is not a wednesday <:sadge:906740836404981790>")
             await ctx.message.delete()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
     
     @commands.command()
     async def cope(self,ctx):
         """Cope"""
         await ctx.send("https://tenor.com/view/cope-dont-care-crying-cry-chips-gif-21606846")
         await ctx.message.delete()
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
 class Utility(commands.Cog):
     def __init__(self, bot):
@@ -299,16 +311,14 @@ class Utility(commands.Cog):
         """Parrots back what you say"""
         await ctx.send(" ".join(message))
         await ctx.message.delete()
-        print(ctx.author)
         self.reportAuthor(ctx.command,ctx.author)
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
 
     @commands.command()
-    async def poll(self, ctx, *message: str):
+    async def poll(self, ctx):
         """Adds a poll to your message"""
         await ctx.message.add_reaction("✅")
         await ctx.message.add_reaction("🚫")
-        Utility.reportAuthor(ctx,ctx.command,ctx.author)
+        self.reportAuthor(ctx.command,ctx.author)
 
     def reportAuthor(self, command: str, author: str):
         print(f"{author} issued the {command} command.")
