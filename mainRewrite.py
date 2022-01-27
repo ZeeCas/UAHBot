@@ -1,25 +1,24 @@
-#TODO ping command, pings every 30 seconds
-
+from cmath import pi
 import os
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import re
 import requests
 import random
 import youtube_dl
 import asyncio
-from datetime import datetime
+from datetime import datetime, date
 from dotenv import load_dotenv
 load_dotenv()
-import json
 # import pysftp
 
 intents = discord.Intents.all()
 
+durations = []
+
 bot = commands.Bot(command_prefix=',', intents=intents)
 
 youtube_dl.utils.bug_reports_message = lambda: ''
-
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -32,7 +31,8 @@ ytdl_format_options = {
     'quiet': True,
     'no_warnings': True,
     'default_search': 'auto',
-    'source_address': '0.0.0.0' 
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+    'source_address': '0.0.0.0'
 }
 
 ffmpeg_options = {
@@ -40,7 +40,6 @@ ffmpeg_options = {
 }
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
-
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
@@ -52,15 +51,16 @@ class YTDLSource(discord.PCMVolumeTransformer):
         self.url = data.get('url')
 
     @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
+    async def from_url(cls, url, *, loop=None, stream=True):
         loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
+        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
         if 'entries' in data:
             # take first item from a playlist
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
+        durations.append(data['duration'])
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
 # class FTP(commands.Cog):
@@ -88,9 +88,12 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.Utility = Utility(self.bot)
-        self.queue = {}
+        self.queue = []
+        self.titles = []
+        self.links = []
+        self.requesters = []
         self.link = ""
-
+        self.looper.start()
 
     @commands.command(pass_context=True)
     async def join(self, ctx):
@@ -101,7 +104,8 @@ class Music(commands.Cog):
         else:
             VC = ctx.author.voice.channel
             client = await VC.connect()
-            self.queue = {}
+            global VCC 
+            VCC = ctx.voice_client
             await ctx.send(f'Connected to ``{VC}``')
         self.Utility.reportAuthor(ctx.command,ctx.author)
             
@@ -111,27 +115,31 @@ class Music(commands.Cog):
         await ctx.voice_client.disconnect()
         self.Utility.reportAuthor(ctx.command,ctx.author)
         
-    @commands.command(name="stream")
-    async def queue(self, ctx, *link):
+    @commands.command(name="stream", aliases=['play'])
+    async def play(self, ctx, *link):
         """Plays a youtube video by url (streams)"""
-        try:
+        if not ctx.voice_client:
+            await ctx.send('You must be connected to a voice channel.')
+            return
+        else:
             if not "http" in link and not "www." in link:
                 link = self.Utility.getYTURL(link)
-            async with ctx.typing():
-                song_info = ytdl.extract_info(link, download=False)
-                player = discord.FFmpegPCMAudio(song_info["formats"][0]["url"])
-                self.title = song_info["title"]
-                try:
-                    async with ctx.typing():
-                            self.start_playing(ctx.voice_client, player)
-                            await ctx.send(f"**Now Playing:** ``{self.title}``")
-                except Exception as e:
-                    print(e)
-        except Exception as e:
-            print(e)
-            await ctx.send(e)             
+            self.queue.append(link)
+            self.requesters.append(ctx.message.author)
+            self.links.append(f"https://www.youtube.com/watch?v={link}")
+            await ctx.send(f"**Adding** ``{ytdl.extract_info(link, download=False)['title']}`` **to Queue**")
+            self.titles.append(ytdl.extract_info(link, download=False)['title'])       
+            self.Utility.reportAuthor(ctx.command,ctx.author)
+        
+    @commands.command(name="rq")
+    async def removeQueue(self,ctx,index):
+        """Removes a song at a given index"""
+        self.queue.pop(index)
+        self.titles.pop(index)
+        self.links.pop(index)
+        self.requesters.pop(ctx.message.author)
+        await ctx.send(f"**Removed:** ``{self.titles[index]}`` **from queue.**")
         self.Utility.reportAuthor(ctx.command,ctx.author)
-       
     @commands.command()
     async def volume(self, ctx, volume: int):
         """Changes the volume"""
@@ -141,7 +149,7 @@ class Music(commands.Cog):
         
     @commands.command()
     async def pause(self, ctx):
-        """Pauses the audio coming the bot"""
+        """Pauses the audio media"""
         await ctx.voice_client.pause()
         self.Utility.reportAuthor(ctx.command,ctx.author)
         
@@ -153,13 +161,29 @@ class Music(commands.Cog):
         
     @commands.command()
     async def stop(self, ctx):
-        """Removes the music from playing"""
+        """Stops the bot from playing (or subsequently resuming) the currently playing media"""
         await ctx.voice_client.stop()
         self.Utility.reportAuthor(ctx.command,ctx.author)
-        
+            
+    @commands.command()
+    async def clear(self, ctx):
+        """Clears the queue"""
+        await ctx.send("**Queue Cleared**")
+        self.queue = []
+        self.titles = []
+        await ctx.voice_client.stop()
+        self.Utility.reportAuthor(ctx.command,ctx.author)
     @commands.command(name="np")
     async def nowPlaying(self,ctx):
-        await ctx.send(f"**Now Playing:** ``{self.title}``")
+        """Returns the song that is currently playing"""
+        #await ctx.send(f"**Now Playing:** ``{self.title}`` {self.links[0]}")
+        await ctx.send(embed=self.create_embed(0))
+        self.Utility.reportAuthor(ctx.command,ctx.author)
+    @commands.command()
+    async def q(self,ctx):
+        """Displays the song queue"""
+        await ctx.send(f"Queue: {self.titles}")
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command()
     async def yt(self, ctx, *title: str):
@@ -170,8 +194,34 @@ class Music(commands.Cog):
         await ctx.send(f"https://www.youtube.com/watch?v={video_ids[0]}")
         self.Utility.reportAuthor(ctx.command,ctx.author)
     
-    def start_playing(self, voice_client, player):
+    def startPlaying(self, voice_client, player):
         voice_client.play(player, after=lambda e: print('Done') if not e else None)
+    
+    async def playStuff(self, link):
+        song_info = ytdl.extract_info(link, download=False)
+        player = await YTDLSource.from_url(link)
+        self.title = song_info["title"]
+        VCC.play(player, after=lambda e: self.queue.pop(0) and self.titles.pop(0) and self.links.pop(0) if not e else None)
+        #self.startPlaying(ctx.voice_client,link)
+    
+    def create_embed(self,index):
+            embed = (discord.Embed(title='Now playing',
+                                description=f'**\n{self.titles[index]}\n**',
+                                color=discord.Color.blurple())
+                    #.add_field(name='Duration', value=durations[0])
+                    .add_field(name='Requested by', value=self.requesters[index])
+                    .add_field(name='URL', value=f'[Click]({self.links[index]})'))
+
+            return embed
+    @tasks.loop(seconds=5.0)
+    async def looper(self):
+        try:
+            if VCC.is_playing():
+                pass
+            elif len(self.queue) != 0:
+                await self.playStuff(self.queue[0])
+        except:
+            pass
 
 class Images(commands.Cog):
     def __init__(self, bot):
@@ -186,6 +236,7 @@ class Images(commands.Cog):
 
     @commands.command()
     async def dog(self,ctx):
+        """Returns an image of a dog"""
         api = "https://dog.ceo/api/breeds/image/random"
         data = requests.get(api)
         data = data.json()
@@ -244,12 +295,12 @@ class Fun(commands.Cog):
         request = requests.get("https://random-xkcd-img.herokuapp.com/")
         await ctx.send(request.json()['url'])
         await ctx.message.delete()
-
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 
     @commands.command(name='8ball')
     async def _8ball(self, ctx):
         """Rolls an 8ball for you"""
-        responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work."]
+        responses = ["No","Mayhaps","Ask again later","Are you dumb? Absolutely not.","Of course silly!","Its a little foggy","It's certain","Huh? I didn't catch that","Never. Not in a million years","I don't see why not?","That just isn't gonna work.","The hunt begins.","Sounds delicious."]
         self.Utility.reportAuthor(ctx.command,ctx.author)
         await ctx.send(random.choice(responses))
 
@@ -258,7 +309,6 @@ class Fun(commands.Cog):
         """Returns a quote from the list of quotes"""
         with open("./quotes","r") as quotes:
             lines = quotes.read().splitlines()
-            self.Utility.reportAuthor(ctx.command,ctx.author)
             await ctx.send(random.choice(lines))
         await ctx.message.delete()
         self.Utility.reportAuthor(ctx.command,ctx.author)
@@ -302,6 +352,16 @@ class Fun(commands.Cog):
         await ctx.message.delete()
         self.Utility.reportAuthor(ctx.command,ctx.author)
 
+    @commands.command()
+    async def ping(self,ctx,user):
+        """Pings a user a lot"""
+        pingCommand = ""
+        for i in range(50):
+            pingCommand = pingCommand + f"{user}"
+        await ctx.send(pingCommand)
+        await ctx.message.delete()
+        del pingCommand
+        self.Utility.reportAuthor(ctx.command,ctx.author)
 class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -309,6 +369,9 @@ class Utility(commands.Cog):
     @commands.command()
     async def say(self, ctx, *message: str):
         """Parrots back what you say"""
+        with open("say-log.txt","a") as f:
+            f.write(f"{ctx.author} said \"{' '.join(message)}\" at {date.today().strftime('%d/%m/%Y')} {datetime.now().strftime('%H:%M:%S')}\n")
+            f.close()  
         await ctx.send(" ".join(message))
         await ctx.message.delete()
         self.reportAuthor(ctx.command,ctx.author)
@@ -321,13 +384,13 @@ class Utility(commands.Cog):
         self.reportAuthor(ctx.command,ctx.author)
 
     def reportAuthor(self, command: str, author: str):
+        with open("cmd-log.txt","a") as f:
+            f.write(f"{author} issued \"{command}\" at {date.today().strftime('%d/%m/%Y')} {datetime.now().strftime('%H:%M:%S')}\n")
+            f.close()
         print(f"{author} issued the {command} command.")
         
     def getYTURL(self, lnk):
-        print(type(lnk))
         lnk = "+".join(lnk)
-        q = f"https://www.youtube.com/results?search_query={lnk}"
-        print(q)
         html = requests.get(f"https://www.youtube.com/results?search_query={lnk}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         return video_ids[0]
