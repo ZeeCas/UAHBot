@@ -82,6 +82,10 @@ class Listeners(commands.Cog):
             await message.channel.send(f"Hi {message.content[3:]} i'm Dad")
         elif message.content.lower().startswith("i'm ") or message.content.lower().startswith("i’m "):
             await message.channel.send(f"Hi{message.content[3:]} i'm Dad")
+        if message.channel.id == 904776622144622612 and message.content.startswith('"'):
+            with open("quotes","a") as f:
+                f.write(message.content + "\n")
+                f.close()
         await bot.process_commands(message)
 
 class Music(commands.Cog):
@@ -103,8 +107,8 @@ class Music(commands.Cog):
             return
         else:
             VC = ctx.author.voice.channel
-            client = await VC.connect()
-            global VCC 
+            await VC.connect()
+            global VCC
             VCC = ctx.voice_client
             await ctx.send(f'Connected to ``{VC}``')
         self.Utility.reportAuthor(ctx.command,ctx.author)
@@ -115,7 +119,7 @@ class Music(commands.Cog):
         await ctx.voice_client.disconnect()
         self.Utility.reportAuthor(ctx.command,ctx.author)
         
-    @commands.command(name="stream", aliases=['play'])
+    @commands.command(name="stream", aliases=['play','p'])
     async def play(self, ctx, *link):
         """Plays a youtube video by url (streams)"""
         if not ctx.voice_client:
@@ -131,7 +135,7 @@ class Music(commands.Cog):
             self.titles.append(ytdl.extract_info(link, download=False)['title'])       
             self.Utility.reportAuthor(ctx.command,ctx.author)
         
-    @commands.command(name="rq")
+    @commands.command(name="rq",aliases=['remove'])
     async def removeQueue(self,ctx,index):
         """Removes a song at a given index"""
         self.queue.pop(index)
@@ -176,7 +180,6 @@ class Music(commands.Cog):
     @commands.command(name="np")
     async def nowPlaying(self,ctx):
         """Returns the song that is currently playing"""
-        #await ctx.send(f"**Now Playing:** ``{self.title}`` {self.links[0]}")
         await ctx.send(embed=self.create_embed(0))
         self.Utility.reportAuthor(ctx.command,ctx.author)
     @commands.command()
