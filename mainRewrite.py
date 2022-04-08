@@ -1,7 +1,6 @@
-from cmath import pi
 import os
-import discord
-from discord.ext import commands, tasks
+import nextcord
+from nextcord.ext import commands, tasks
 import re
 import requests
 import random
@@ -10,13 +9,14 @@ import asyncio
 from datetime import datetime, date
 from dotenv import load_dotenv
 load_dotenv()
-# import pysftp
+import pysftp
 
-intents = discord.Intents.all()
+intents = nextcord.Intents.all()
 
 durations = []
 
 bot = commands.Bot(command_prefix=',', intents=intents)
+cnopts = pysftp.CnOpts(knownhosts='known_hosts')
 
 youtube_dl.utils.bug_reports_message = lambda: ''
 
@@ -41,7 +41,7 @@ ffmpeg_options = {
 
 ytdl = youtube_dl.YoutubeDL(ytdl_format_options)
 
-class YTDLSource(discord.PCMVolumeTransformer):
+class YTDLSource(nextcord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
         super().__init__(source, volume)
 
@@ -61,15 +61,49 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         durations.append(data['duration'])
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+        return cls(nextcord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
 
-# class FTP(commands.Cog):
-#     def __init__(self,bot):
-#         self.bot = bot
-#     def parseFTP(self, ctx, file: str):
-#         with pysftp.Connection('127.0.0.1', port=39870, username='pythonboi', password='Mijo2003', cnopts=cnopts) as sftp:
-#             with sftp.cd('.'):
-#                 files = ",".split(sftp.listdir())
+class FTP(commands.Cog):
+    def __init__(self,bot):
+        self.bot = bot
+    def searchFTP(self,*title: str, dir: str):
+        positives = []
+        title = " ".join(title)
+        with pysftp.Connection('127.0.0.1', port=39870, username='pythonboi', password='Mijo2003', cnopts=cnopts) as sftp:
+            with sftp.cd(f'{dir}'):
+                matches = []
+                location = []
+                files = sftp.listdir()
+                for i in range(len(files)):
+                    files[i] = files[i].lower()
+                for game in files:
+                    X = game
+                    Y = title.lower()
+                    l = Utility.lcs(X, Y)
+                    for i in range(len(matches)):
+                        if l == matches[i][0]:
+                            matches[i].append(game)
+                            break
+                    else:
+                        matches.append([l, game])
+                        location.append([game, sftp.pwd])
+        for l, *game in matches:
+            print(l)
+            if l == title.lower() or l==title.replace(" ","").lower():
+                positives.append(l)
+        sftp.close()
+        return True,f"Match found! {' '.join(game)} in {dir}"
+
+    @commands.command()
+    async def search(self,ctx,*query):
+        query = " ".join(query)
+        if self.searchFTP(query,dir='.'):
+            await ctx.send(f"{self.searchFTP(query,dir='.')[1]}")
+        elif self.searchFTP(query,dir='./ExternalSSD'):
+            await ctx.send(f"{self.searchFTP(query,dir='./ExternalSSD')[1]}")
+        elif self.searchFTP(query,dir='./ExternalHDD'):
+            await ctx.send(f"{self.searchFTP(query,dir='./ExternalHDD')[1]}")
+
 
 class Listeners(commands.Cog):
     def __init__(self, bot):
@@ -82,7 +116,7 @@ class Listeners(commands.Cog):
             await message.channel.send(f"Hi {message.content[3:]} i'm Dad")
         elif message.content.lower().startswith("i'm ") or message.content.lower().startswith("i’m "):
             await message.channel.send(f"Hi{message.content[3:]} i'm Dad")
-        if message.channel.id == 904776622144622612 and message.content.startswith('"'):
+        if message.channel.id == 904776622144622612 and message.content.startswith('"') or message.channel.id == 904776622144622612 and message.content.startswith('“'):
             with open("quotes","a") as f:
                 f.write(message.content + "\n")
                 f.close()
@@ -136,7 +170,7 @@ class Music(commands.Cog):
             self.Utility.reportAuthor(ctx.command,ctx.author)
         
     @commands.command(name="rq",aliases=['remove'])
-    async def removeQueue(self,ctx,index):
+    async def removeQueue(self,ctx,index: int):
         """Removes a song at a given index"""
         self.queue.pop(index)
         self.titles.pop(index)
@@ -204,13 +238,13 @@ class Music(commands.Cog):
         song_info = ytdl.extract_info(link, download=False)
         player = await YTDLSource.from_url(link)
         self.title = song_info["title"]
-        VCC.play(player, after=lambda e: self.queue.pop(0) and self.titles.pop(0) and self.links.pop(0) if not e else None)
+        VCC.play(player, after=lambda e: self.queue.pop(0) and self.titles.pop(0) and self.links.pop(0) and self.pop.requesters(0) if not e else None)
         #self.startPlaying(ctx.voice_client,link)
     
     def create_embed(self,index):
-            embed = (discord.Embed(title='Now playing',
+            embed = (nextcord.Embed(title='Now playing',
                                 description=f'**\n{self.titles[index]}\n**',
-                                color=discord.Color.blurple())
+                                color=nextcord.Color.blurple())
                     #.add_field(name='Duration', value=durations[0])
                     .add_field(name='Requested by', value=self.requesters[index])
                     .add_field(name='URL', value=f'[Click]({self.links[index]})'))
@@ -233,7 +267,7 @@ class Images(commands.Cog):
     @commands.command()
     async def cat(self, ctx):
         """Returns an image of a O'Malley"""
-        await ctx.send(file=discord.File(f"photos/{random.randrange(1,10)}.jpg"))
+        await ctx.send(file=nextcord.File(f"photos/{random.randrange(1,10)}.jpg"))
         await ctx.message.delete()
         self.Utility.reportAuthor(ctx.command,ctx.author)
 
@@ -358,10 +392,9 @@ class Fun(commands.Cog):
     @commands.command()
     async def ping(self,ctx,user):
         """Pings a user a lot"""
-        pingCommand = ""
-        for i in range(50):
-            pingCommand = pingCommand + f"{user}"
-        await ctx.send(pingCommand)
+        pingCommand = f"{user}"
+        for i in range(5):
+            await ctx.send(pingCommand, delete_after=0.1)
         await ctx.message.delete()
         del pingCommand
         self.Utility.reportAuthor(ctx.command,ctx.author)
@@ -369,6 +402,7 @@ class Utility(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
     
+
     @commands.command()
     async def say(self, ctx, *message: str):
         """Parrots back what you say"""
@@ -397,6 +431,51 @@ class Utility(commands.Cog):
         html = requests.get(f"https://www.youtube.com/results?search_query={lnk}")
         video_ids = re.findall(r"watch\?v=(\S{11})", html.content.decode())
         return video_ids[0]
+    def lcs(X, Y):
+        m = len(X)
+        n = len(Y)
+        L = [[0 for x in range(n+1)] for x in range(m+1)]
+    
+        # Following steps build L[m+1][n+1] in bottom up fashion. Note
+        # that L[i][j] contains length of LCS of X[0..i-1] and Y[0..j-1] 
+        for i in range(m+1):
+            for j in range(n+1):
+                if i == 0 or j == 0:
+                    L[i][j] = 0
+                elif X[i-1] == Y[j-1]:
+                    L[i][j] = L[i-1][j-1] + 1
+                else:
+                    L[i][j] = max(L[i-1][j], L[i][j-1])
+    
+        # Following code is used to print LCS
+        index = L[m][n]
+    
+        # Create a character array to store the lcs string
+        lcs = [""] * (index+1)
+        lcs[index] = ""
+    
+        # Start from the right-most-bottom-most corner and
+        # one by one store characters in lcs[]
+        i = m
+        j = n
+        while i > 0 and j > 0:
+    
+            # If current character in X[] and Y are same, then
+            # current character is part of LCS
+            if X[i-1] == Y[j-1]:
+                lcs[index-1] = X[i-1]
+                i-=1
+                j-=1
+                index-=1
+    
+            # If not same, then find the larger of two and
+            # go in the direction of larger value
+            elif L[i-1][j] > L[i][j-1]:
+                i-=1
+            else:
+                j-=1
+
+        return("".join(lcs))
 
       
 bot.add_cog(Listeners(bot))
@@ -404,5 +483,6 @@ bot.add_cog(Music(bot))
 bot.add_cog(Utility(bot))
 bot.add_cog(Images(bot))
 bot.add_cog(Fun(bot))
+bot.add_cog(FTP(bot))
 print("E")
 bot.run(os.getenv('DISCORD-TOKEN'))
